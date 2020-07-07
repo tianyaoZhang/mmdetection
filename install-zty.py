@@ -8,7 +8,9 @@
         云端存储在 train_url
         云端无法通过软链接的形式调用其他桶的data  2020-06-26
         修改了config中的samples_per_gpu=8,并创建了本地config文件，以解决显存不足的问题  2020-07-01
+        2020-07-06
         更新了mmdetection环境至2.2.0，修改local_config/atss_r50_fpn_ms12.py中的stem_channels=32 for mmdet 2.2.0
+        更新了requriements中mmcv=0.6.2  pycocotools=12.0
 
 @date   2020/06/25
 说明：
@@ -28,9 +30,11 @@ import time
 import argparse
 
 
-print('='*10,"[zty] start install-zty [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]",'='*10)
+print('='*10,"[zty] start install-zty [ "+
+      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]",'='*10)
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_url', type=str, default='/home/tianyao/Documents/DeeCamp/data',
+parser.add_argument('--data_url', type=str,
+                    default='/home/tianyao/Documents/DeeCamp/data',
                     help='s3 path of dataset')
 parser.add_argument('--train_url', type=str, default='../output',
                     help='s3 path of dataset')
@@ -52,7 +56,8 @@ if(args.cloud):
     os.system("pwd")
     print('-'*20+"show the nvidia-smi"+'-'*20)
     os.system("nvidia-smi")
-    print('='*10,"[zty] start initializing [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ] ",'='*10)
+    print('='*10,"[zty] start initializing [ "+
+          time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ] ",'='*10)
 
     # 用来从cocoapi文件夹中安装包。此方法已被requirements中利用源码安装代替
     # os.chdir("./code/cocoapi")
@@ -64,7 +69,7 @@ if(args.cloud):
     os.chdir("../")         # 回到代码所在根目录 本地：CarDetectionExample-zty；云端：code
     print("[zty] [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]")
 
-    os.system("pip install -r requirements/build.txt")
+    # os.system("pip install -r requirements/build.txt")
     os.system("pip install -v -e .")
 
     # 用来debug 查看包是否安装正确
@@ -77,7 +82,8 @@ if(args.cloud):
     if not os.path.exists("data"):
         print("need training data")
         os.system("ls")
-        print('='*10,'loading data start', '='*10,time.strftime("[ %Y-%m-%d %H:%M:%S ]", time.localtime()))
+        print('='*10,'loading data start', '='*10,
+              time.strftime("[ %Y-%m-%d %H:%M:%S ]", time.localtime()))
         # data_path = './cache/data/'
         data_path = './data/'
         if not os.path.exists(data_path):
@@ -96,17 +102,21 @@ if(args.cloud):
         os.system('rm *.zip')
         os.chdir('../')
         os.system("ls")
-        print('='*10,'unzip data end', '='*10,time.strftime("[ %Y-%m-%d %H:%M:%S ]", time.localtime()))
+        print('='*10,'unzip data end', '='*10,
+              time.strftime("[ %Y-%m-%d %H:%M:%S ]", time.localtime()))
 
 if not os.path.exists(cache_train_url):
     os.makedirs(cache_train_url)
-print('='*10,"[zty] successfully initialized [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]",'='*10)
+print('='*10,"[zty] successfully initialized [ "+
+      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]",'='*10)
 
 import mmcv  # the mmcv is not installed until here in cloud terminal
 timer = mmcv.Timer()
 
 # test the mmdet
-print('='*10,"[zty] start mmdet testing [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ] --from start (%.2f s)-- "%timer.since_start(),'='*10)
+print('='*10,"[zty] start mmdet testing [ "+
+      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+
+      " ] --from start (%.2f s)-- "%timer.since_start(),'='*10)
 import sys, os
 current_dir = os.getcwd()
 sys.path.insert(0, current_dir)
@@ -130,98 +140,21 @@ for idx, f in enumerate(fs):
     mmcv.imwrite(img,cache_train_url+"/test_img/"+"test-mmdet-output.png")
     print('[zty] Successful saved (%s) to %s!' % (f,args.train_url))
 
-print('='*10,"[zty] successfully tested mmdet [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ] --costing (%.2f s)-- "%timer.since_last_check(),'='*10)
+print('='*10,"[zty] successfully tested mmdet [ "+
+      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+
+      " ] --costing (%.2f s)-- "%timer.since_last_check(),'='*10)
 
 # train test
-print('='*10,"[zty] start traing [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ] --from start (%.2f s)-- "%timer.since_start(),'='*10)
+print('='*10,"[zty] start traing [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+
+      " ] --from start (%.2f s)-- "%timer.since_start(),'='*10)
 if(args.cloud):
-    os.system("python ./tools/train.py --config ./local_config/atss_r50_fpn_ms12.py --gpus 1")
+    os.system("python ./tools/train.py ./local_config/atss_r50_fpn_ms12.py --gpus 1")
     mox.file.copy_parallel('./work_dirs/',args.train_url+"/work_dirs/")
     mox.file.copy_parallel(cache_train_url,args.train_url)
 else:
-    os.system("python ./tools/train.py --config ./local_config/local_atss_r50_fpn_ms12.py --gpus 1") # use the config file for the local terminal
+    os.system("python ./tools/train.py ./local_config/local_atss_r50_fpn_ms12.py --gpus 1")
+    # use the config file for the local terminal
 
-print('='*10,"[zty] successfully trained [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ] --costing (%.2f s)-- "%timer.since_last_check(),'='*10)
-
-'''
-# 尝试方法1：test url connect faild 2020-06-26
-# import moxing as mox
-# mox.file.shift('os', 'mox')
-# dataset_url = "/home/work/"
-# fs = os.listdir(dataset_url)
-# for idx, f in enumerate(fs):
-#     if idx < 0 or idx > 20:
-#         continue
-#     img = dataset_url + f
-#     print("[zty] "+img)
-#     if(os.path.isdir(img)):
-#         fs2 = os.listdir(img)
-#         for idx2, f2 in enumerate(fs2):
-#             if idx2 < 0 or idx2 > 20:
-#                 continue
-#             img = dataset_url + f+f2
-#             print("[zty] " + img)
-# print("[zty] 1 finished")
-#
-# os.system("ln -s %s data" % dataset_url)
-# os.system("pwd")
-# os.system("ls -al")
-#
-# # fs = os.listdir("./data")
-# # for idx, f in enumerate(fs):
-# #     if idx < 0 or idx > 20:
-# #         continue
-# #     img = dataset_url + f
-# #     print("[zty] "+img+os.path.abspath(img))
-# # os.chdir(dataset_url+"/annotations")
-# os.system("cd data")
-# os.system("pwd")
-# os.system("ls")
-# print("[zty] 2 finished")
-
-
-# 尝试方法2，从obs中读data，存到当前工作目录，进行操作。可行. 2020-06-26
-# cache_data_url = './cache/data/'
-# if(args.cloud):
-#   import moxing as mox
-#   mox.file.copy_parallel(args.data_url+"/annotations", cache_data_url)
-# else:
-#   import shutil
-#   shutil.copytree(args.data_url, cache_data_url)
-#
-# os.system("ls")
-# fs = os.listdir(cache_data_url)
-# for idx, f in enumerate(fs):
-#     if idx < 0 or idx > 20:
-#         continue
-#     img = cache_data_url + f
-#     print("[zty] "+img)
-#
-# os.system("ls")
-# if not mox.file.exists("./data"):
-#     mox.file.copy_parallel( "./cache","s3://test-modelarts-zty/CardetectionExample-zty/code/") # 存到code所在obs中
-#     print("[zty] copy successfully")
-'''
-
-# os.chdir("code")
-# os.system("ls")
-# print('='*10,'loading data start', '='*10,time.strftime("[ %Y-%m-%d %H:%M:%S ]", time.localtime()))
-# data_path = './cache/data/'
-# if not os.path.exists(data_path):
-#     os.makedirs(data_path)
-# import moxing as mox
-# mox.file.copy_parallel("s3://detteam/annotations.zip",data_path+"annotations.zip")
-# mox.file.copy_parallel("s3://detteam/train.zip", data_path+"train.zip")
-# mox.file.copy_parallel("s3://detteam/valid.zip", data_path+"valid.zip")
-# mox.file.copy_parallel("s3://detteam/testA.zip", data_path+"testA.zip")
-# print('loading data end',os.listdir(data_path))
-# os.chdir(data_path)
-# os.system('unzip -q valid.zip')
-# os.system('unzip -q testA.zip')
-# os.system('unzip -q annotations.zip')
-# os.system('unzip -q train.zip')
-# os.system('rm *.zip')
-# os.chdir('../../')
-# print('='*10,'unzip data end', '='*10,time.strftime("[ %Y-%m-%d %H:%M:%S ]", time.localtime()))
-# # 把data存回code的obs中，以后就可以直接用data，无需再次读取解压了
-# mox.file.copy_parallel( "./cache/","s3://test-modelarts-zty/CardetectionExample-zty/code/")
+print('='*10,"[zty] successfully trained [ "+
+      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+
+      " ] --costing (%.2f s)-- "%timer.since_last_check(),'='*10)

@@ -1,13 +1,14 @@
 """
 @author Tianyao Zhang
-@desc   该文件来自gfl-mmdetection==1.1工程中，目的是扒取gfl到本工程
-        添加并需要对mmdet/models/dense_heads/gfl_head.py的import部分调整
-        添加mmdet/models/dense_heads/gfl_head.py
-            在mmdet/ops/__init__.py 中添加声明（import+__all__)
-        在mmdet/core/bbox/transforms.py中添加bbox2distance 函数
-            并在mmdet/core/bbox/__init__.py中添加声明
-        添加mmdet/models/losses/gfocal_loss.py
-            并在mmdet/models/losses/__init__.py 中添加声明
+@desc   更新mmdetection==2.2.0以后，该文件可以直接调用
+
+        version log:
+        1） output/work_dirs/gfl_r50_1x/
+            学习率按照atss进行调整
+        2) output/work_dirs/gfl_r50_1x_v2/
+            更改学习律为原始版本
+        3) 'output/work_dirs/gfl_r50_ms3'
+            小样本train=1000,val=500
 
 @date   2020/07/06
 说明：
@@ -19,12 +20,13 @@ Data：
 """
 # model settings
 model = dict(
-    type='ATSS',
+    type='GFL',
     # pretrained='torchvision://resnet50',
     backbone=dict(
         type='ResNetV1d',
         depth=50,
         base_channels=32,
+        stem_channels=32,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=-1,
@@ -45,20 +47,18 @@ model = dict(
         in_channels=64,
         stacked_convs=2,
         feat_channels=64,
-        octave_base_scale=8,
-        scales_per_octave=1,
-        anchor_ratios=[1.0],
-        anchor_strides=[8, 16, 32, 64, 128],
-        target_means=[.0, .0, .0, .0],
-        target_stds=[0.1, 0.1, 0.2, 0.2],
-        loss_qfl=dict(
+        anchor_generator=dict(
+            type='AnchorGenerator',
+            ratios=[1.0],
+            octave_base_scale=8,
+            scales_per_octave=1,
+            strides=[8, 16, 32, 64, 128]),
+        loss_cls=dict(
             type='QualityFocalLoss',
             use_sigmoid=True,
             beta=2.0,
             loss_weight=1.0),
-        loss_dfl=dict(
-            type='DistributionFocalLoss',
-            loss_weight=0.25),
+        loss_dfl=dict(type='DistributionFocalLoss', loss_weight=0.25),
         reg_max=16,
         loss_bbox=dict(type='GIoULoss', loss_weight=2.0)))
 # training and testing settings
@@ -73,6 +73,7 @@ test_cfg = dict(
     score_thr=0.05,
     nms=dict(type='nms', iou_thr=0.6),
     max_per_img=100)
+
 # dataset settings
 dataset_type = 'CocoDataset'
 data_root = "/home/tianyao/Documents/DeeCamp/data/"
@@ -113,45 +114,44 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/valid.json',
-        img_prefix=data_root + 'valid/',
+        ann_file='/home/tianyao/Documents/DeeCamp/output/sampleddata/train_1000.json',
         # ann_file=data_root + 'annotations/train.json',
-        # img_prefix=data_root + 'train/',
+        img_prefix=data_root + 'train/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/valid.json',
+        # ann_file=data_root + 'annotations/valid.json',
+        ann_file='/home/tianyao/Documents/DeeCamp/output/sampleddata/valid_500.json',
         img_prefix=data_root + 'valid/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/testA_image_info.json',
+        # ann_file=data_root + 'annotations/testA_image_info.json',
+        ann_file='/home/tianyao/Documents/DeeCamp/output/sampleddata/valid_1000.json',
         img_prefix=data_root + 'testA/',
         pipeline=test_pipeline))
 
 total_epochs = 3
-evaluation = dict(interval=total_epochs, metric='bbox')
+evaluation = dict(interval=1, metric='bbox')
 
 # optimizer
 optimizer = dict(type='SGD', lr=0.08, momentum=0.9, weight_decay=0.0001)
-#optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
-
-# optimizer = dict(
-#     type='SGD',
-#     lr=0.01,
-#     momentum=0.9,
-#     weight_decay=0.0001,
-#     paramwise_options=dict(bias_lr_mult=2., bias_decay_mult=0.))
 optimizer_config = dict(grad_clip=None)
-
-
 # learning policy
 lr_config = dict(
     policy='step',
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[1])
+    step=[1,2])
+# lr_config = dict(
+#     policy='step',
+#     warmup='linear',
+#     warmup_iters=500,
+#     warmup_ratio=0.001,
+#     step=[2])
+
+# runtime settings
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
@@ -161,11 +161,9 @@ log_config = dict(
         # dict(type='TensorboardLoggerHook')
     ])
 # yapf:enable
-# runtime settings
-
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = '/home/tianyao/Documents/DeeCamp/output/work_dirs/gfl_r50_1x'
+work_dir = '/home/tianyao/Documents/DeeCamp/output/work_dirs/gfl_r50_1x_v2/'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

@@ -2,9 +2,16 @@
     本地config做如下调整：
     lr=0.08 --> 0.1
     samples_per_gpu=16 -->8
-    total_epochs = 12 --> 2
-    warmup_iters=500 --> 1500
-    step=[8, 11]  --> [12,18]
+    total_epochs = 12 --> 3
+    step=[8, 11]  --> [2]
+    要每个epochs都evaluate才能有bbox_mAP的图
+
+    checkpoint log:
+    1) DeeCamp/output/work_dirs/atss_r50_fpn_stem64_ms3
+        stem_channels=64
+    2) DeeCamp/output/work_dirs/atss_r50_fpn_ms3
+        stem_channels=32
+
 '''
 model = dict(
     type='ATSS',
@@ -12,6 +19,7 @@ model = dict(
         type='ResNetV1d',
         depth=50,
         base_channels=32,
+        stem_channels=32,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=-1,
@@ -115,26 +123,27 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/valid.json',
-        img_prefix=data_root + 'valid/',
+        ann_file='/home/tianyao/Documents/DeeCamp/output/sampleddata/train_1000.json',
         # ann_file=data_root + 'annotations/train.json',
-        # img_prefix=data_root + 'train/',
+        img_prefix=data_root + 'train/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/valid.json',
+        # ann_file=data_root + 'annotations/valid.json',
+        ann_file='/home/tianyao/Documents/DeeCamp/output/sampleddata/valid_500.json',
         img_prefix=data_root + 'valid/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/testA_image_info.json',
+        # ann_file=data_root + 'annotations/testA_image_info.json',
+        ann_file='/home/tianyao/Documents/DeeCamp/output/sampleddata/valid_1000.json',
         img_prefix=data_root + 'testA/',
         pipeline=test_pipeline))
 # optimizer
 optimizer = dict(type='SGD', lr=0.08, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=None)
-evaluation = dict(interval=total_epochs, metric='bbox') # 只在最后一次evaluate
-checkpoint_config = dict(interval=1)
+evaluation = dict(interval=1, metric='bbox') # 只在最后一次evaluate
+checkpoint_config = dict(interval=1,filename_tmpl='epoch_{}.pth')
 
 # yapf:disable
 log_config = dict(
@@ -149,4 +158,4 @@ log_level = 'INFO'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
-work_dir = '/home/tianyao/Documents/DeeCamp/output/work_dirs/'
+work_dir = '/home/tianyao/Documents/DeeCamp/output/work_dirs/atss_r50_fpn_ms%d/'%(total_epochs)
