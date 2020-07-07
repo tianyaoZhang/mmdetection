@@ -19,15 +19,22 @@ cfg = [
 # version log
 # work dir: '/home/tianyao/Documents/DeeCamp/output/work_dirs/'
 work_dir=[
-    'output/work_dirs/atss_r50_fpn_ms3_v1',      #小样本train=1000,val=500
-    'output/work_dirs/atss_r50_fpn_ms3',         # stem_channels=32
-    'output/work_dirs/atss_r50_fpn_stem64_ms3',  # stem_channels=64
-    'output/work_dirs/gfl_r50_ms3',      #小样本train=1000,val=500
-    'output/work_dirs/gfl_r50_1x_v2/',   #更改学习律为原始版本
+    # atss
+    [
+        'output/work_dirs/atss_r50_fpn_ms3',            # stem_channels=32  train=val
+        'output/work_dirs/atss_r50_fpn_ms3_stem64',     # stem_channels=64  train=val
+        'output/work_dirs/atss_r50_fpn_ms3_10w',        # 10w数据集训练 3 epoch结果
+        'output/work_dirs/atss_r50_fpn_ms3_v1',         # 小样本train=1000,val=500
 
-    'output/work_dirs/gfl_r50_1x/',      #学习率按照atss进行调整
-    'output/work_dirs/gfl_r50_ms3_v1/'     #bboxhead->feat_channels=256,
+    ],
 
+    # gfl
+    [
+        'output/work_dirs/gfl_r50_1x_v2/',              # 更改学习律为原始版本     train=val
+        'output/work_dirs/gfl_r50_1x/',                 # 学习率按照atss进行调整   train=val
+        'output/work_dirs/gfl_r50_ms3_v1',                 # 小样本train=1000,val=500
+
+    ]
 ]
 # print('='*10,"[zty] experiment 1 [ ",
 #       time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]",'='*10)
@@ -37,4 +44,4 @@ work_dir=[
 print('='*10,"[zty] experiment 2 [ ",
       time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]",'='*10)
 os.system("python ./tools/train.py ./%s --work-dir ../%s --gpus 1" %
-          (cfg[1],work_dir[6]))
+          (cfg[1],work_dir[1][6]))
