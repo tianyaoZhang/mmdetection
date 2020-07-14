@@ -29,9 +29,6 @@ import time
 # import mmcv
 import argparse
 
-
-print('='*10,"[zty] start install-zty [ "+
-      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]",'='*10)
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_url', type=str,
                     default='/home/tianyao/Documents/DeeCamp/data',
@@ -43,48 +40,47 @@ parser.add_argument('--cloud', type=bool, default=False,
 # Protect the arguments which are not parsed.
 args, unparsed = parser.parse_known_args()
 
+def stagelog(str,timelog=False):
+    '''
+    timelog = True only after import mmcv successfully
+    '''
+    if not timelog:
+        print('=' * 10, "[zty] %s [ "%str,
+              time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + " ] ",
+              '=' * 10)
+    else:
+        print('=' * 10, "[zty] %s [ "%str +
+              time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) +
+              " ] --costing (%.2f s)-- " % timer.since_last_check(), '=' * 10)
+
+'''
+    start initialization
+'''
 cache_train_url = '/home/tianyao/Documents/DeeCamp/output/'
+stagelog("start install-zty")
+
 if(args.cloud):
     # 此处开始，工作目录进入code
     cache_train_url = './cache/'
     os.chdir("code")
-    print('-'*20+"show the pip list"+'-'*20)
-    os.system("pip list")
-    print('-'*20+"show the file list"+'-'*20)
-    os.system("ls")
-    print('-'*20+"show the pwd"+'-'*20)
-    os.system("pwd")
+    # print('-'*20+"show the pip list"+'-'*20)
+    # os.system("pip list")
+    # print('-'*20+"show the file list"+'-'*20)
+    # os.system("ls")
+    # print('-'*20+"show the pwd"+'-'*20)
+    # os.system("pwd")
     print('-'*20+"show the nvidia-smi"+'-'*20)
     os.system("nvidia-smi")
-    print('='*10,"[zty] start initializing [ "+
-          time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ] ",'='*10)
-
-    # 用来从cocoapi文件夹中安装包。此方法已被requirements中利用源码安装代替
-    # os.chdir("./code/cocoapi")
-    # os.system("python installcocoapi-zty.py")
-    # os.chdir("../../")  # 回到根目录
+    stagelog("start initializing")
 
     os.chdir("./requirements/")
     os.system("pip install -r initial-zty.txt")
     os.chdir("../")         # 回到代码所在根目录 本地：CarDetectionExample-zty；云端：code
     print("[zty] [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]")
-
-    # os.system("pip install -r requirements/build.txt")
     os.system("pip install -v -e .")
 
-    # 用来debug 查看包是否安装正确
-    # print('-'*20+"show the pip list")
-    # os.system("pip list")
-    # print("successfully installed")
-    # print("[ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]")
-    # import mmdet
-    # print(mmdet.__version__)
     if not os.path.exists("data"):
-        print("need training data")
-        os.system("ls")
-        print('='*10,'loading data start', '='*10,
-              time.strftime("[ %Y-%m-%d %H:%M:%S ]", time.localtime()))
-        # data_path = './cache/data/'
+        stagelog("loading data start")
         data_path = './data/'
         if not os.path.exists(data_path):
             os.makedirs(data_path)
@@ -102,30 +98,24 @@ if(args.cloud):
         os.system('rm *.zip')
         os.chdir('../')
         os.system("ls")
-        print('='*10,'unzip data end', '='*10,
-              time.strftime("[ %Y-%m-%d %H:%M:%S ]", time.localtime()))
-
+        stagelog("unzip data end")
 if not os.path.exists(cache_train_url):
     os.makedirs(cache_train_url)
-print('='*10,"[zty] successfully initialized [ "+
-      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]",'='*10)
+stagelog("successfully initialized")
 
+'''
+    test the mmdet
+'''
 import mmcv  # the mmcv is not installed until here in cloud terminal
-timer = mmcv.Timer()
-
-# test the mmdet
-print('='*10,"[zty] start mmdet testing [ "+
-      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+
-      " ] --from start (%.2f s)-- "%timer.since_start(),'='*10)
 import sys, os
+from mmdet.apis import init_detector, inference_detector, show_result_pyplot
 current_dir = os.getcwd()
 sys.path.insert(0, current_dir)
-from mmdet.apis import init_detector, inference_detector, show_result_pyplot
-# import mmcv
+timer = mmcv.Timer()
+stagelog("start mmdet testing",True)
 
 di = './test_img/'
 fs = os.listdir(di)
-
 config_file = '%s/local_config/atss_r50_fpn_ms12.py' % current_dir
 checkpoint_file = '%s/pretrain_model/atss_r50_fpn_ms12.model' % current_dir
 model = init_detector(config_file, checkpoint_file, device='cuda:0')
@@ -136,25 +126,25 @@ for idx, f in enumerate(fs):
     print("[zty] "+img)
     result = inference_detector(model, img)
     img = model.show_result(img, result, score_thr=0.3, show=False)
-
     mmcv.imwrite(img,cache_train_url+"/test_img/"+"test-mmdet-output.png")
     print('[zty] Successful saved (%s) to %s!' % (f,args.train_url))
+stagelog("successfully tested mmdet",True)
 
-print('='*10,"[zty] successfully tested mmdet [ "+
-      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+
-      " ] --costing (%.2f s)-- "%timer.since_last_check(),'='*10)
 
-# train test
-print('='*10,"[zty] start traing [ "+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+
-      " ] --from start (%.2f s)-- "%timer.since_start(),'='*10)
+'''
+    # train 
+'''
+stagelog("start traing",True)
 if(args.cloud):
-    os.system("python ./tools/train.py ./local_config/atss_r50_fpn_ms12.py --gpus 1")
+    os.system("python ./tools/train.py ./local_config/atss_r50_stem64_fpn_ms2x.py --gpus 1")
+    stagelog("finished trian (atss_r50_stem64_fpn_ms2x)",True)
+    os.system("python ./tools/train.py ./local_config/gfl_r50_2x.py --gpus 1")
+    stagelog("finished trian (gfl_r50_2x)", True)
     mox.file.copy_parallel('./work_dirs/',args.train_url+"/work_dirs/")
     mox.file.copy_parallel(cache_train_url,args.train_url)
 else:
     os.system("python ./tools/train.py ./local_config/local_atss_r50_fpn_ms12.py --gpus 1")
     # use the config file for the local terminal
+    stagelog("finished train 1",True)
 
-print('='*10,"[zty] successfully trained [ "+
-      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+
-      " ] --costing (%.2f s)-- "%timer.since_last_check(),'='*10)
+stagelog("successfully trained")

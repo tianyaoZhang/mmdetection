@@ -33,7 +33,7 @@ work_dir=[
         'output/work_dirs/gfl_r50_1x_v2/',              # 更改学习律为原始版本     train=val
         'output/work_dirs/gfl_r50_1x/',                 # 学习率按照atss进行调整   train=val
         'output/work_dirs/gfl_r50_ms3_v1',                 # 小样本train=1000,val=500
-
+        'output/work_dirs/gfl_r50_ms3_v2'               # backbone= ResNet50v1d->ResNet50
     ]
 ]
 # print('='*10,"[zty] experiment 1 [ ",
@@ -44,4 +44,4 @@ work_dir=[
 print('='*10,"[zty] experiment 2 [ ",
       time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" ]",'='*10)
 os.system("python ./tools/train.py ./%s --work-dir ../%s --gpus 1" %
-          (cfg[1],work_dir[1][6]))
+          (cfg[1],work_dir[1][3]))
